@@ -8,6 +8,10 @@ Changelog
   collective.cmfeditionsdexteritycompat.
   [rpatterson]
 
+- Add convenience functions (aka sanity) for getting 
+  dexterity fields and behavior fields in a consistent way
+  [eleddy]
+
 
 2.1.1 (2013-01-17)
 ------------------

@@ -20,6 +20,8 @@ from plone.dexterity.interfaces import IDexterityItem
 from plone.dexterity.interfaces import IDexterityContainer
 
 from plone.dexterity.schema import SCHEMA_CACHE
+from plone.dexterity.utils import iterSchemata
+from zope.schema import getFieldsInOrder
 
 from zope.container.contained import Contained
 
@@ -252,7 +254,7 @@ class DexterityContent(DAVResourceMixin, PortalContent, DefaultDublinCoreImpl, C
                 part = part.decode('utf-8')
             s.append(part)
         self.subject = tuple(s)
-    
+
     def Subject(self):
         # this is a CMF-style accessor, so should return utf8-encoded
         s = []
@@ -263,17 +265,86 @@ class DexterityContent(DAVResourceMixin, PortalContent, DefaultDublinCoreImpl, C
                 s.append(part)
         return tuple(s)
 
+    def getField(self, name):
+        """Given a field name, return a field instance. Party hard.
+        """
+        fields = self.getFields()
+        for field in fields:
+            if field.getName() == name:
+                return field
+        return None
+
+    def getFields(self):
+        """Return all fields for this content type, as field instances.
+        Because of behaviors, fields are distributed across several
+        schemata. Fields will be returned in proper order.
+        """
+        fields = []
+        for schemata in iterSchemata(self):
+            fieldsInOrder = getFieldsInOrder(schemata)
+            for orderedField in fieldsInOrder:
+                fields.append(orderedField[-1])
+        return fields
+
+    def getFieldNames(self):
+        """Return a list of the names of the fields. Just some convenience
+        cause I love yo faces!
+        """
+        return self.asDictionary().keys()
+
+    def asDictionary(self, checkConstraints=False):
+        """Return a dictionary of key, value pairs of all fields.
+        You're welcome.
+        """
+        hotness = {}  # pep8
+        fields = self.getFields()
+        for field in fields:
+            if checkConstraints:
+                if not self.canViewField(field):
+                    continue
+            hotness[field.getName()] = self.getValue(field)
+        return hotness
+
+    def canViewField(self, field):
+        """returns True if the logged in user has permission to view this
+        field
+        """
+        info = mergedTaggedValueDict(field.interface, READ_PERMISSIONS_KEY)
+
+        # If there is no specific read permission, assume it is view
+        if field not in info:
+            return True
+
+        permission = queryUtility(IPermission, name=info[field])
+        if permission is not None:
+            return getSecurityManager().checkPermission(permission.title, context)
+
+        return False
+
+    def getValue(self, field):
+        """While it may seem like you should just be able to access
+        the items attributes, this is not actually true. If something
+        is provided as an adapter the adapter must be applied to get
+        the actual field value. We can't use get() because Container
+        overrides it to get subitems. So we use this obscure interface
+        syntax instead of looking up and adapting the schema.
+
+        Begin face exploding sequence in 3,2,1...
+        """
+        adaptedField = field.interface(self)
+        return getattr(adaptedField, field.getName())
+
 
 class Item(PasteBehaviourMixin, BrowserDefaultMixin, DexterityContent):
     """A non-containerish, CMFish item
     """
-    
+
     implements(IDexterityItem)
     __providedBy__ = FTIAwareSpecification()
     __allow_access_to_unprotected_subobjects__ = AttributeValidator()
-    
+
     isPrincipiaFolderish = 0
-    
+
     def __init__(self, id=None, **kwargs):
         if id is not None:
             self.id = id
