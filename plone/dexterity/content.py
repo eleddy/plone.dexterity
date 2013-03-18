@@ -282,7 +282,6 @@ class DexterityContent(DAVResourceMixin, PortalContent, DefaultDublinCoreImpl, C
         fields = []
         for schemata in iterSchemata(self):
             fieldsInOrder = getFieldsInOrder(schemata)
-            # TODO: once python 2.6 support is out, make this an OrderedDict
             for orderedField in fieldsInOrder:
                 fields.append(orderedField[-1])
         return fields
@@ -295,9 +294,7 @@ class DexterityContent(DAVResourceMixin, PortalContent, DefaultDublinCoreImpl, C
 
     def asDictionary(self, checkConstraints=False):
         """Return a dictionary of key, value pairs of all fields.
-        If checkContraints is True, it will onyl return values
-        that the authenticated user is allowed to see. Otherwise,
-        all attribute,value pairs are returned.
+        You're welcome.
         """
         hotness = {}  # pep8
         fields = self.getFields()
@@ -316,18 +313,17 @@ class DexterityContent(DAVResourceMixin, PortalContent, DefaultDublinCoreImpl, C
 
         # If there is no specific read permission, assume it is view
         if field not in info:
-            return getSecurityManager().checkPermission(AccessControl.Permissions.view,
-                                                        self)
+            return True
 
         permission = queryUtility(IPermission, name=info[field])
         if permission is not None:
-            return getSecurityManager().checkPermission(permission.title, self)
+            return getSecurityManager().checkPermission(permission.title, context)
 
         return False
 
     def getValue(self, field):
         """While it may seem like you should just be able to access
-        this contents attributes, this is not true :|. If something
+        the items attributes, this is not actually true. If something
         is provided as an adapter the adapter must be applied to get
         the actual field value. We can't use get() because Container
         overrides it to get subitems. So we use this obscure interface
@@ -335,8 +331,8 @@ class DexterityContent(DAVResourceMixin, PortalContent, DefaultDublinCoreImpl, C
 
         Begin face exploding sequence in 3,2,1...
         """
-        behaviorAdapter = field.interface(self)
-        return getattr(behaviorAdapter, field.getName())
+        adaptedField = field.interface(self)
+        return getattr(adaptedField, field.getName())
 
 
 class Item(PasteBehaviourMixin, BrowserDefaultMixin, DexterityContent):
