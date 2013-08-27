@@ -1,10 +1,54 @@
 Changelog
 =========
 
-2.1.3 (unreleased)
+2.2.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Hide the Dublin Core tab and show the Properties tab for
+  items when viewed in the ZMI.
+  [davisagli]
+
+- Avoid storing dublin core metadata on new instances unless it
+  differs from the default values.
+  [davisagli]
+
+- Implement CMF's dublin core interfaces inline rather than
+  depending on CMFDefault.
+  [davisagli]
+
+when they aren't allowed to contain any types
+- Support GenericSetup structure import/export of Dexterity content.
+  Content is serialized the same way as for WebDAV,
+  using plone.rfc822. Not all field types are supported yet,
+  but this at least gets the basics in place.
+
+  GS import used to work by accident in a basic way for Dexterity
+  containers. If you were using this, you'll need to recreate your
+  exported files with the rfc822 serialization.
+  [davisagli]
+
+- Creator accessor should return encoded strings
+  If your catalog was broken, try to clear & reindex Creator::
+
+    cat.clearIndex('Creator')
+    cat.manage_reindexIndex(['Creator'])
+
+  [kiorky]
+
+- Use the same message string for the default fieldset as Archetypes does.
+  [davisagli]
+
+- Add convenience functions (aka sanity) for getting 
+  dexterity fields and behavior fields in a consistent way
+  [eleddy]
+
+
+2.1.3 (2013-05-26)
+------------------
+
+- Fail gracefully when a schema lookup fails due to schema that doesn't
+  exist or no longer exists for some reason or another.
+  [eleddy]
 
 
 2.1.2 (2013-03-05)
@@ -13,10 +57,6 @@ Changelog
 - Merged Rafael Oliveira's (@rafaelbco) @content-core views from
   collective.cmfeditionsdexteritycompat.
   [rpatterson]
-
-- Add convenience functions (aka sanity) for getting 
-  dexterity fields and behavior fields in a consistent way
-  [eleddy]
 
 
 2.1.1 (2013-01-17)
@@ -119,7 +159,7 @@ Changelog
   http://code.google.com/p/dexterity/issues/detail?id=240
   [davisagli]
 
-* Added events: IEditBegunEvent, IEditCancelledEvent, IEditFinished, 
+* Added events: IEditBegunEvent, IEditCancelledEvent, IEditFinished,
   IAddBegunEvent, IAddCancelledEvent
   [jbaumann]
 

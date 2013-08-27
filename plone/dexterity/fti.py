@@ -1,4 +1,5 @@
 import os.path
+import logging
 
 from zope.interface import implements
 
@@ -180,13 +181,19 @@ class DexterityFTI(base.DynamicViewTypeInformation):
     
     def Title(self):
         if self.title and self.i18n_domain:
-            return Message(self.title.decode('utf8'), self.i18n_domain)
+            try:
+                return Message(self.title.decode('utf8'), self.i18n_domain)
+            except UnicodeDecodeError:
+                return Message(self.title.decode('latin-1'), self.i18n_domain)
         else:
             return self.title or self.getId()
 
     def Description(self):
         if self.description and self.i18n_domain:
-            return Message(self.description.decode('utf8'), self.i18n_domain)
+            try:
+                return Message(self.description.decode('utf8'), self.i18n_domain)
+            except UnicodeDecodeError:
+                return Message(self.description.decode('latin-1'), self.i18n_domain)
         else:
             return self.description
     
@@ -204,12 +211,18 @@ class DexterityFTI(base.DynamicViewTypeInformation):
         return not(self.schema)
     
     def lookupSchema(self):
+        schema = None
         
         # If a specific schema is given, use it
         if self.schema:
-            schema = utils.resolveDottedName(self.schema)
-            if schema is None:
-                raise ValueError(u"Schema %s set for type %s cannot be resolved" % (self.schema, self.getId()))
+            try:
+                schema = utils.resolveDottedName(self.schema)
+            except ImportError:
+                logging.warning(u"Schema %s set for type %s cannot be resolved" % (self.schema, self.getId()))
+                # fall through to return a fake class with no
+                # fields so that end user code doesn't break
+                
+        if schema:
             return schema
         
         # Otherwise, look up a dynamic schema. This will query the model for
